@@ -3,86 +3,258 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GCACW Combat Calculator</title>
+  <title>GCACW Full Combat Resolver</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; background-color: #f4f4f9; color: #333; }
-    .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    label { font-weight: bold; font-size: 0.9em; display: block; margin-top: 8px; }
-    input, select { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-    button { width: 100%; background: #007aff; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin-top: 15px; }
-    .result-box { background: #eef6ff; border-left: 4px solid #007aff; padding: 10px; margin-top: 15px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background-color: #f0f2f5; color: #1c1e21; }
+    .card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); margin-bottom: 12px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    label { font-weight: 600; font-size: 0.85em; display: block; margin-top: 6px; }
+    input, select { width: 100%; padding: 6px; margin-top: 2px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { width: 100%; background: #007aff; color: white; padding: 10px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; margin-top: 10px; }
+    .result-box { background: #e7f3ff; border-left: 4px solid #1877f2; padding: 10px; }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; margin-top: 10px; }
+    .res-card { background: white; padding: 8px; border-radius: 6px; border: 1px solid #b0d5ff; }
+    .res-title { font-size: 0.8em; font-weight: bold; color: #555; }
+    .res-val { font-size: 1.4em; font-weight: bold; color: #007aff; }
+    .sub-card { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; margin-top: 8px; }
+    .game-select-card { background: #eef6ff; border: 1px solid #007aff; }
   </style>
 </head>
 <body>
 
   <h2>GCACW Combat Resolver</h2>
 
-  <div class="card">
-    <h3>Attacker (Union)</h3>
-    <div class="grid">
-      <div><label>Combat Value (CV)</label><input type="number" id="attCV" value="25"></div>
-      <div><label>Artillery</label><input type="number" id="attArty" value="7"></div>
-    </div>
-    <div class="grid">
-      <div><label>Tactical Rating</label><input type="number" id="attTac" value="2"></div>
-      <div>
-        <label>Action Type</label>
-        <select id="actionType">
-          <option value="assault">Assault (+1)</option>
-          <option value="march">March</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Defender (CSA)</h3>
-    <div class="grid">
-      <div><label>Combat Value (CV)</label><input type="number" id="defCV" value="11"></div>
-      <div><label>Artillery</label><input type="number" id="defArty" value="3"></div>
-    </div>
-    <div class="grid">
-      <div><label>Tactical Rating</label><input type="number" id="defTac" value="3"></div>
-      <div>
-        <label>Terrain</label>
-        <select id="terrain">
-          <option value="clear">Clear</option>
-          <option value="rough">Rough / Hill</option>
-          <option value="mountain">Mountain</option>
-        </select>
-      </div>
-    </div>
-    <label>Hexside Feature</label>
-    <select id="hexside">
-      <option value="creek">Creek (+1 Def)</option>
-      <option value="none">None</option>
-      <option value="bridge">Bridge / Ford (+2 Def)</option>
+  <!-- Game Series Selector -->
+  <div class="card game-select-card">
+    <label>Select GCACW Module / Game Filter</label>
+    <select id="selectedGame" onchange="updateLeaderFilter()">
+      <option value="otr">On To Richmond! (OTR)</option>
+      <option value="tom">Thunder on the Mississippi (TOM)</option>
+      <option value="sjw">Stonewall Jackson's Way (SJW)</option>
+      <option value="hcr">Here Come the Rebels! (HCR)</option>
+      <option value="slb">Stonewall in the Valley (SLB)</option>
+      <option value="gtc">Grant Takes Command (GTC)</option>
+      <option value="bac">Atlanta Is Ours / Battle Above the Clouds (BAC)</option>
+      <option value="tpc">The Petersburg Campaign (TPC)</option>
+      <option value="hsn">Hood Strikes North (HSN)</option>
+      <option value="aga">All Green Alike (AGA)</option>
     </select>
   </div>
 
-  <button onclick="runCalculation()">Calculate Modifiers</button>
+  <!-- Attacker Section -->
+  <div class="card">
+    <h3>Attacker</h3>
+    <div class="grid">
+      <div>
+        <label>Attacking Side</label>
+        <select id="attackerSide">
+          <option value="union">Union</option>
+          <option value="csa">Confederate (CSA)</option>
+        </select>
+      </div>
+      <div>
+        <label>Action Type</label>
+        <select id="actionType" onchange="toggleMarchType()">
+          <option value="assault">Assault Action (+1)</option>
+          <option value="march">March Action</option>
+        </select>
+      </div>
+    </div>
 
+    <div class="grid">
+      <div><label>Combat Value (CV)</label><input type="number" id="attCV" value="25"></div>
+      <div><label>Artillery Value</label><input type="number" id="attArty" value="7"></div>
+    </div>
+
+    <div class="grid">
+      <div><label>Tactical Rating</label><input type="number" id="attTac" value="2"></div>
+      <div><label>Base Dice Roll (1-6)</label><input type="number" id="attRoll" value="5" min="1" max="6"></div>
+    </div>
+
+    <div id="marchTypeGroup" style="display:none;">
+      <label>March Attack Type</label>
+      <select id="marchType">
+        <option value="normal">Normal Attack (0)</option>
+        <option value="hasty">Hasty Attack (-1)</option>
+        <option value="prepared">Prepared Attack (+1)</option>
+        <option value="column">Column of Route (-3)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Defender Section -->
+  <div class="card">
+    <h3>Defender</h3>
+    <div class="grid">
+      <div><label>Combat Value (CV)</label><input type="number" id="defCV" value="11"></div>
+      <div><label>Artillery Value</label><input type="number" id="defArty" value="3"></div>
+    </div>
+
+    <div class="grid">
+      <div><label>Tactical Rating</label><input type="number" id="defTac" value="3"></div>
+      <div><label>Base Dice Roll (1-6)</label><input type="number" id="defRoll" value="2" min="1" max="6"></div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label>Defender Terrain</label>
+        <select id="terrain">
+          <option value="clear">Clear</option>
+          <option value="rolling">Rolling</option>
+          <option value="rough">Rough</option>
+          <option value="hill">Hill (+1 Def)</option>
+          <option value="mountain">Mountain (+2 Def)</option>
+          <option value="woods">Woods</option>
+          <option value="city">City</option>
+          <option value="swamp">Swamp</option>
+        </select>
+      </div>
+      <div>
+        <label>Hexside Feature</label>
+        <select id="hexside">
+          <option value="none">None</option>
+          <option value="creek">Creek (+1 Def)</option>
+          <option value="bridge">Bridge / Ford / Dam (+2 Def)</option>
+          <option value="ridge_up">Uphill Ridge (+2 Def)</option>
+          <option value="ridge_down">Downhill Ridge</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Fortifications -->
+    <div class="sub-card">
+      <label>Fortification Mode</label>
+      <select id="fortMode" onchange="toggleFortMode()">
+        <option value="standard">Standard GCACW (Full Hex Protection)</option>
+        <option value="partial">Custom Partial Fortification Breakdown</option>
+      </select>
+
+      <div id="standardFortGroup" style="margin-top:6px;">
+        <label>Standard Fortification Level</label>
+        <select id="fortificationType">
+          <option value="none">None (0)</option>
+          <option value="breastworks">Breastworks (+1 Def)</option>
+          <option value="redoubt">Redoubt (+2 Def)</option>
+          <option value="fort">Permanent Fort (+2 Def)</option>
+          <option value="abatis">Abatis (+1 Def)</option>
+        </select>
+      </div>
+
+      <div id="partialFortGroup" style="display:none; margin-top:6px;">
+        <label>Breakdown by Manpower / Stack Units:</label>
+        <div class="grid-3">
+          <div><label>In Breastworks (+1)</label><input type="number" id="bwCount" value="4"></div>
+          <div><label>In Fort (+2)</label><input type="number" id="fortCount" value="2"></div>
+          <div><label>Unfortified (0)</label><input type="number" id="openCount" value="10"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Special Modifiers & Flank Attacks -->
+  <div class="card">
+    <h3>Flanks, Leaders & Conditions</h3>
+    <div class="grid">
+      <div>
+        <label>Flank Attack Bonus</label>
+        <select id="flankBonus">
+          <option value="0">None (+0)</option>
+          <option value="1">+1 Flank Bonus</option>
+          <option value="2">+2 Flank Bonus</option>
+          <option value="3">+3 Flank Bonus</option>
+          <option value="4">+4 Flank Bonus</option>
+        </select>
+      </div>
+      <div>
+        <label>Leader Bonus</label>
+        <select id="leaderBonus">
+          <option value="none">None</option>
+          <option value="lee">Lee (+1 Assault)</option>
+          <option value="jackson">Jackson (+1 Assault)</option>
+          <option value="longstreet">Longstreet (+1 Assault)</option>
+          <option value="sherman">Sherman (+1 Assault)</option>
+          <option value="hood_forrest">Hood & Forrest (+1 Assault)</option>
+          <option value="thomas">Thomas (+1)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:8px;">
+      <label><input type="checkbox" id="flanksRefused"> Defender Flanks Refused (-1 Flank)</label>
+      <label><input type="checkbox" id="isRain"> Rain Turn (-1 Att, +2 Creek)</label>
+      <label><input type="checkbox" id="isDemoralized2"> Attacker Demoralized-2 (-1)</label>
+      <label><input type="checkbox" id="isUnionPanic"> Union Panic (-1 Union Att)</label>
+    </div>
+  </div>
+
+  <button onclick="runCalculation()">Resolve Combat</button>
+
+  <!-- Output Section -->
   <div id="output" class="card result-box" style="display:none;"></div>
 
   <script src="calculator.js"></script>
   <script>
+    function toggleMarchType() {
+      const action = document.getElementById('actionType').value;
+      document.getElementById('marchTypeGroup').style.display = (action === 'march') ? 'block' : 'none';
+    }
+
+    function toggleFortMode() {
+      const mode = document.getElementById('fortMode').value;
+      document.getElementById('standardFortGroup').style.display = (mode === 'standard') ? 'block' : 'none';
+      document.getElementById('partialFortGroup').style.display = (mode === 'partial') ? 'block' : 'none';
+    }
+
     function runCalculation() {
+      const isPartial = document.getElementById('fortMode').value === 'partial';
+
       const params = {
+        selectedGame: document.getElementById('selectedGame').value,
+        attackerSide: document.getElementById('attackerSide').value,
         attackerCV: parseFloat(document.getElementById('attCV').value),
         defenderCV: parseFloat(document.getElementById('defCV').value),
         attackerArty: parseFloat(document.getElementById('attArty').value),
         defenderArty: parseFloat(document.getElementById('defArty').value),
-        attackerTactical: parseFloat(document.getElementById('attTac').value),
-        defenderTactical: parseFloat(document.getElementById('defTac').value),
+        attackerTac: parseFloat(document.getElementById('attTac').value),
+        defenderTac: parseFloat(document.getElementById('defTac').value),
+        attackerRoll: parseInt(document.getElementById('attRoll').value),
+        defenderRoll: parseInt(document.getElementById('defRoll').value),
         actionType: document.getElementById('actionType').value,
+        marchType: document.getElementById('marchType').value,
         terrain: document.getElementById('terrain').value,
-        hexside: document.getElementById('hexside').value
+        hexside: document.getElementById('hexside').value,
+        fortificationType: document.getElementById('fortificationType').value,
+        customPartialFort: isPartial,
+        breastworkCount: parseFloat(document.getElementById('bwCount').value) || 0,
+        fortCount: parseFloat(document.getElementById('fortCount').value) || 0,
+        unfortifiedCount: parseFloat(document.getElementById('openCount').value) || 0,
+        leaderBonus: document.getElementById('leaderBonus').value,
+        flankBonus: document.getElementById('flankBonus').value,
+        flanksRefused: document.getElementById('flanksRefused').checked,
+        isRain: document.getElementById('isRain').checked,
+        isDemoralized2: document.getElementById('isDemoralized2').checked,
+        isUnionPanic: document.getElementById('isUnionPanic').checked
       };
 
       const res = calculateCombat(params);
+
+      let html = `
+        <div class="result-grid">
+          <div class="res-card">
+            <div class="res-title">DEFENDER RESULT</div>
+            <div class="res-val">${res.defenderResult}</div>
+          </div>
+          <div class="res-card">
+            <div class="res-title">ATTACKER RESULT</div>
+            <div class="res-val">${res.attackerResult}</div>
+          </div>
+        </div>
+        <br>
+        <b>Net Differential: ${res.netDiff >= 0 ? '+' : ''}${res.netDiff}</b> 
+        (Attacker Roll: ${res.modifiedAttRoll} vs Defender Roll: ${res.modifiedDefRoll})
+        <br><br><b>Modifier Breakdown:</b><ul>`;
       
-      let html = `<b>Net Differential: ${res.netDiff >= 0 ? '+' : ''}${res.netDiff}</b><br><br><b>Breakdown:</b><ul>`;
       res.breakdown.forEach(item => html += `<li>${item}</li>`);
       html += `</ul>`;
 
